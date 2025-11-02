@@ -1,0 +1,761 @@
+-- ADVANCED EXPLOIT HUB - FULL FEATURED
+-- Complete exploit suite with monitoring, ESP, and enhanced features
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Get remotes
+local Events = ReplicatedStorage:WaitForChild("Events")
+local DashRemote = Events:FindFirstChild("Dash")
+local RagdollRemote = Events:FindFirstChild("Ragdoll")
+local CreateHitboxRemote = Events:FindFirstChild("CreateHitbox")
+
+-- Settings
+local Settings = {
+    InfiniteYen = false,
+    SpeedHack = false,
+    AutoDash = false,
+    GodMode = false,
+    ESPEnabled = false,
+    InfiniteJump = false,
+    BiggerHitbox = false,
+    MonitoringEnabled = false,
+    WalkSpeed = 16,
+    HitboxSize = 10,
+    UIMinimized = false
+}
+
+-- Connections and data
+local Connections = {}
+local MonitoringData = {
+    RemotesFired = {},
+    DamageReceived = 0,
+    KillsMade = 0,
+    YenGained = 0,
+    StartTime = tick()
+}
+
+local ESPObjects = {}
+
+-- Create minimizable GUI
+local function createGUI()
+    local existing = LocalPlayer.PlayerGui:FindFirstChild("ExploitHub")
+    if existing then existing:Destroy() end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ExploitHub"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Main Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 550, 0, 500)
+    mainFrame.Position = UDim2.new(0.5, -275, 0.5, -250)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 10)
+    mainCorner.Parent = mainFrame
+    
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 10)
+    titleCorner.Parent = titleBar
+    
+    local titleFill = Instance.new("Frame")
+    titleFill.Size = UDim2.new(1, 0, 0.5, 0)
+    titleFill.Position = UDim2.new(0, 0, 0.5, 0)
+    titleFill.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    titleFill.BorderSizePixel = 0
+    titleFill.Parent = titleBar
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -90, 1, 0)
+    title.Position = UDim2.new(0, 10, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "⚡ ADVANCED EXPLOIT HUB"
+    title.TextColor3 = Color3.fromRGB(100, 200, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 18
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = titleBar
+    
+    -- Minimize button
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Size = UDim2.new(0, 35, 0, 35)
+    minimizeBtn.Position = UDim2.new(1, -80, 0, 2.5)
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+    minimizeBtn.Text = "-"
+    minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.TextSize = 20
+    minimizeBtn.Parent = titleBar
+    
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 6)
+    minimizeCorner.Parent = minimizeBtn
+    
+    -- Close button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 35, 0, 35)
+    closeBtn.Position = UDim2.new(1, -38, 0, 2.5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 16
+    closeBtn.Parent = titleBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+    
+    -- Content
+    local content = Instance.new("ScrollingFrame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, -20, 1, -50)
+    content.Position = UDim2.new(0, 10, 0, 45)
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.ScrollBarThickness = 6
+    content.Parent = mainFrame
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = content
+    
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        content.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+    end)
+    
+    -- Minimize functionality
+    minimizeBtn.MouseButton1Click:Connect(function()
+        Settings.UIMinimized = not Settings.UIMinimized
+        
+        if Settings.UIMinimized then
+            mainFrame:TweenSize(UDim2.new(0, 300, 0, 40), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.3, true)
+            minimizeBtn.Text = "+"
+            content.Visible = false
+        else
+            mainFrame:TweenSize(UDim2.new(0, 550, 0, 500), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.3, true)
+            minimizeBtn.Text = "-"
+            content.Visible = true
+        end
+    end)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+    
+    -- Make draggable
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+        end
+    end)
+    
+    titleBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    screenGui.Parent = LocalPlayer.PlayerGui
+    return content
+end
+
+-- UI Components
+local function createSection(parent, text)
+    local section = Instance.new("TextLabel")
+    section.Size = UDim2.new(1, 0, 0, 25)
+    section.BackgroundTransparency = 1
+    section.Text = "━━━ " .. text .. " ━━━"
+    section.TextColor3 = Color3.fromRGB(100, 200, 255)
+    section.Font = Enum.Font.GothamBold
+    section.TextSize = 14
+    section.TextXAlignment = Enum.TextXAlignment.Center
+    section.Parent = parent
+end
+
+local function createToggle(parent, text, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 45)
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -90, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 65, 0, 28)
+    button.Position = UDim2.new(1, -73, 0.5, -14)
+    button.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+    button.Text = "OFF"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 12
+    button.Parent = frame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = button
+    
+    local enabled = false
+    
+    button.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        
+        if enabled then
+            button.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+            button.Text = "ON"
+        else
+            button.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+            button.Text = "OFF"
+        end
+        
+        pcall(function()
+            callback(enabled)
+        end)
+    end)
+    
+    return button
+end
+
+local function createButton(parent, text, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 13
+    button.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+    
+    button.MouseButton1Click:Connect(function()
+        pcall(callback)
+    end)
+end
+
+-- EXPLOIT FUNCTIONS
+
+-- Enhanced Anti-Ragdoll (God Mode)
+local function toggleGodMode(enabled)
+    Settings.GodMode = enabled
+    
+    if enabled then
+        -- Method 1: Hook the remote
+        if RagdollRemote then
+            local mt = getrawmetatable(game)
+            local oldNamecall = mt.__namecall
+            setreadonly(mt, false)
+            
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                local args = {...}
+                
+                if self == RagdollRemote and method == "FireServer" then
+                    if Settings.GodMode and args[1] == true then
+                        return
+                    end
+                end
+                
+                return oldNamecall(self, ...)
+            end)
+            
+            setreadonly(mt, true)
+        end
+        
+        -- Method 2: Disable ragdoll state
+        if Connections.RagdollCheck then
+            Connections.RagdollCheck:Disconnect()
+        end
+        
+        Connections.RagdollCheck = Humanoid.StateChanged:Connect(function(old, new)
+            if Settings.GodMode then
+                if new == Enum.HumanoidStateType.FallingDown or new == Enum.HumanoidStateType.Ragdoll then
+                    Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+                end
+            end
+        end)
+        
+        -- Method 3: Prevent health damage
+        if Connections.HealthCheck then
+            Connections.HealthCheck:Disconnect()
+        end
+        
+        local lastHealth = Humanoid.Health
+        Connections.HealthCheck = Humanoid.HealthChanged:Connect(function(health)
+            if Settings.GodMode and health < lastHealth then
+                Humanoid.Health = lastHealth
+            end
+            lastHealth = Humanoid.Health
+        end)
+        
+        print("[✓] Enhanced God Mode enabled!")
+    else
+        if Connections.RagdollCheck then
+            Connections.RagdollCheck:Disconnect()
+        end
+        if Connections.HealthCheck then
+            Connections.HealthCheck:Disconnect()
+        end
+        print("[✓] God Mode disabled")
+    end
+end
+
+-- Infinite Jump
+local function toggleInfiniteJump(enabled)
+    Settings.InfiniteJump = enabled
+    
+    if enabled then
+        if Connections.InfiniteJump then
+            Connections.InfiniteJump:Disconnect()
+        end
+        
+        Connections.InfiniteJump = UserInputService.JumpRequest:Connect(function()
+            if Settings.InfiniteJump then
+                Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+        
+        print("[✓] Infinite Jump enabled!")
+    else
+        if Connections.InfiniteJump then
+            Connections.InfiniteJump:Disconnect()
+        end
+        print("[✓] Infinite Jump disabled")
+    end
+end
+
+-- Bigger Hitbox
+local function toggleBiggerHitbox(enabled)
+    Settings.BiggerHitbox = enabled
+    
+    if enabled then
+        if Connections.HitboxLoop then
+            Connections.HitboxLoop:Disconnect()
+        end
+        
+        Connections.HitboxLoop = RunService.Heartbeat:Connect(function()
+            if Settings.BiggerHitbox then
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            hrp.Size = Vector3.new(Settings.HitboxSize, Settings.HitboxSize, Settings.HitboxSize)
+                            hrp.Transparency = 0.8
+                            hrp.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end)
+        
+        print("[✓] Bigger Hitbox enabled!")
+    else
+        if Connections.HitboxLoop then
+            Connections.HitboxLoop:Disconnect()
+        end
+        
+        -- Restore original hitboxes
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.Size = Vector3.new(2, 2, 1)
+                    hrp.Transparency = 1
+                end
+            end
+        end
+        
+        print("[✓] Bigger Hitbox disabled")
+    end
+end
+
+-- ESP
+local function createPlayerESP(player)
+    if player == LocalPlayer then return end
+    
+    local function addESP(character)
+        task.wait(0.5)
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character:FindFirstChild("Humanoid")
+        if not hrp or not humanoid then return end
+        
+        -- Box ESP
+        local box = Instance.new("BoxHandleAdornment")
+        box.Name = "ESP_Box"
+        box.Size = Vector3.new(4, 5, 1)
+        box.Color3 = Color3.fromRGB(255, 0, 0)
+        box.Transparency = 0.7
+        box.ZIndex = 1
+        box.AlwaysOnTop = true
+        box.Adornee = hrp
+        box.Parent = hrp
+        
+        -- Name tag
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESP_Billboard"
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.Parent = hrp
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = player.Name
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextSize = 14
+        nameLabel.TextStrokeTransparency = 0.5
+        nameLabel.Parent = billboard
+        
+        local distLabel = Instance.new("TextLabel")
+        distLabel.Size = UDim2.new(1, 0, 0.5, 0)
+        distLabel.Position = UDim2.new(0, 0, 0.5, 0)
+        distLabel.BackgroundTransparency = 1
+        distLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+        distLabel.Font = Enum.Font.Gotham
+        distLabel.TextSize = 12
+        distLabel.TextStrokeTransparency = 0.5
+        distLabel.Parent = billboard
+        
+        local healthBar = Instance.new("Frame")
+        healthBar.Size = UDim2.new(1, 0, 0.1, 0)
+        healthBar.Position = UDim2.new(0, 0, 0.9, 0)
+        healthBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        healthBar.BorderSizePixel = 0
+        healthBar.Parent = billboard
+        
+        local healthFill = Instance.new("Frame")
+        healthFill.Size = UDim2.new(1, 0, 1, 0)
+        healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        healthFill.BorderSizePixel = 0
+        healthFill.Parent = healthBar
+        
+        -- Update loop
+        local connection = RunService.Heartbeat:Connect(function()
+            if Settings.ESPEnabled and HumanoidRootPart and hrp and humanoid then
+                local dist = (HumanoidRootPart.Position - hrp.Position).Magnitude
+                distLabel.Text = math.floor(dist) .. " studs"
+                
+                local healthPercent = humanoid.Health / humanoid.MaxHealth
+                healthFill.Size = UDim2.new(healthPercent, 0, 1, 0)
+                
+                if healthPercent > 0.5 then
+                    healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                elseif healthPercent > 0.25 then
+                    healthFill.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+                else
+                    healthFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                end
+            else
+                connection:Disconnect()
+                if box then box:Destroy() end
+                if billboard then billboard:Destroy() end
+            end
+        end)
+        
+        table.insert(ESPObjects, {box = box, billboard = billboard, connection = connection})
+    end
+    
+    if player.Character then
+        addESP(player.Character)
+    end
+    
+    player.CharacterAdded:Connect(addESP)
+end
+
+local function toggleESP(enabled)
+    Settings.ESPEnabled = enabled
+    
+    if enabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            createPlayerESP(player)
+        end
+        
+        Players.PlayerAdded:Connect(createPlayerESP)
+        
+        print("[✓] ESP enabled!")
+    else
+        for _, espData in pairs(ESPObjects) do
+            if espData.connection then espData.connection:Disconnect() end
+            if espData.box then espData.box:Destroy() end
+            if espData.billboard then espData.billboard:Destroy() end
+        end
+        ESPObjects = {}
+        
+        print("[✓] ESP disabled")
+    end
+end
+
+-- Monitoring System
+local monitorFrame
+local function updateMonitoring()
+    if not Settings.MonitoringEnabled or not monitorFrame then return end
+    
+    local elapsed = tick() - MonitoringData.StartTime
+    local minutes = math.floor(elapsed / 60)
+    local seconds = math.floor(elapsed % 60)
+    
+    local text = string.format(
+        "📊 MONITORING STATS\n\n" ..
+        "⏱ Uptime: %02d:%02d\n" ..
+        "💰 Yen: %s\n" ..
+        "💀 Kills: %s\n" ..
+        "🔫 Remotes Fired: %d\n" ..
+        "🛡 Damage Blocked: %d\n" ..
+        "👥 Players: %d/%d",
+        minutes, seconds,
+        LocalPlayer:FindFirstChild("Yen") and LocalPlayer.Yen.Value or "N/A",
+        LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats.Kills.Value or "N/A",
+        #MonitoringData.RemotesFired,
+        MonitoringData.DamageReceived,
+        #Players:GetPlayers(), Players.MaxPlayers
+    )
+    
+    monitorFrame.Text = text
+end
+
+local function toggleMonitoring(enabled)
+    Settings.MonitoringEnabled = enabled
+    
+    if enabled then
+        if not monitorFrame then
+            monitorFrame = Instance.new("TextLabel")
+            monitorFrame.Size = UDim2.new(0, 250, 0, 180)
+            monitorFrame.Position = UDim2.new(1, -260, 0, 10)
+            monitorFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            monitorFrame.BackgroundTransparency = 0.2
+            monitorFrame.TextColor3 = Color3.fromRGB(255, 255, 255)
+            monitorFrame.Font = Enum.Font.Code
+            monitorFrame.TextSize = 12
+            monitorFrame.TextXAlignment = Enum.TextXAlignment.Left
+            monitorFrame.TextYAlignment = Enum.TextYAlignment.Top
+            monitorFrame.Parent = LocalPlayer.PlayerGui.ExploitHub
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 8)
+            corner.Parent = monitorFrame
+            
+            local padding = Instance.new("UIPadding")
+            padding.PaddingTop = UDim.new(0, 10)
+            padding.PaddingLeft = UDim.new(0, 10)
+            padding.PaddingRight = UDim.new(0, 10)
+            padding.PaddingBottom = UDim.new(0, 10)
+            padding.Parent = monitorFrame
+        end
+        
+        MonitoringData.StartTime = tick()
+        
+        if Connections.MonitoringLoop then
+            Connections.MonitoringLoop:Disconnect()
+        end
+        
+        Connections.MonitoringLoop = RunService.Heartbeat:Connect(updateMonitoring)
+        
+        print("[✓] Monitoring enabled!")
+    else
+        if monitorFrame then
+            monitorFrame:Destroy()
+            monitorFrame = nil
+        end
+        if Connections.MonitoringLoop then
+            Connections.MonitoringLoop:Disconnect()
+        end
+        print("[✓] Monitoring disabled")
+    end
+end
+
+-- Other exploit functions
+local function toggleInfiniteYen(enabled)
+    Settings.InfiniteYen = enabled
+    
+    if enabled then
+        local yenValue = LocalPlayer:FindFirstChild("Yen")
+        if yenValue and yenValue:IsA("IntValue") then
+            yenValue.Value = 999999999
+            
+            if Connections.YenWatch then
+                Connections.YenWatch:Disconnect()
+            end
+            
+            Connections.YenWatch = yenValue:GetPropertyChangedSignal("Value"):Connect(function()
+                if Settings.InfiniteYen then
+                    task.wait(0.1)
+                    yenValue.Value = 999999999
+                end
+            end)
+            
+            print("[✓] Infinite Yen enabled!")
+        end
+    else
+        if Connections.YenWatch then
+            Connections.YenWatch:Disconnect()
+        end
+    end
+end
+
+local function toggleSpeedHack(enabled)
+    Settings.SpeedHack = enabled
+    
+    if enabled then
+        Humanoid.WalkSpeed = Settings.WalkSpeed
+        
+        if Connections.SpeedHack then
+            Connections.SpeedHack:Disconnect()
+        end
+        
+        Connections.SpeedHack = Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            if Settings.SpeedHack then
+                Humanoid.WalkSpeed = Settings.WalkSpeed
+            end
+        end)
+        
+        print("[✓] Speed Hack enabled!")
+    else
+        Humanoid.WalkSpeed = 16
+        if Connections.SpeedHack then
+            Connections.SpeedHack:Disconnect()
+        end
+    end
+end
+
+local function toggleAutoDash(enabled)
+    Settings.AutoDash = enabled
+    
+    if enabled and DashRemote then
+        if Connections.AutoDash then
+            Connections.AutoDash:Disconnect()
+        end
+        
+        Connections.AutoDash = RunService.Heartbeat:Connect(function()
+            if Settings.AutoDash then
+                pcall(function()
+                    DashRemote:FireServer()
+                end)
+            end
+        end)
+        
+        print("[✓] Auto Dash enabled!")
+    else
+        if Connections.AutoDash then
+            Connections.AutoDash:Disconnect()
+        end
+    end
+end
+
+local function unlockAllPowers()
+    local powers = LocalPlayer:FindFirstChild("Powers")
+    if powers then
+        local count = 0
+        for _, power in pairs(powers:GetChildren()) do
+            if power:IsA("BoolValue") then
+                power.Value = true
+                count = count + 1
+            end
+        end
+        print("[✓] Unlocked " .. count .. " powers!")
+    
+end
+
+local function maxUpgrades()
+    local upgrades = LocalPlayer:FindFirstChild("Upgrades")
+    if upgrades then
+        local count = 0
+        for _, upgrade in pairs(upgrades:GetChildren()) do
+            if upgrade:IsA("IntValue") then
+                upgrade.Value = 999
+                count = count + 1
+            end
+        end
+        print("[✓] Maxed " .. count .. " upgrades!")
+    end
+end
+
+local function setWalkSpeed(speed)
+    Settings.WalkSpeed = speed
+    if Settings.SpeedHack then
+        Humanoid.WalkSpeed = speed
+    end
+    print("[✓] Speed set to " .. speed)
+end
+
+-- BUILD GUI
+local content = createGUI()
+
+createSection(content, "💰 MONEY")
+createToggle(content, "Infinite Yen", toggleInfiniteYen)
+createButton(content, "💎 Max Upgrades (999)", maxUpgrades)
+
+createSection(content, "⚔️ COMBAT")
+createToggle(content, "Enhanced God Mode (3 Methods)", toggleGodMode)
+createToggle(content, "Bigger Enemy Hitbox", toggleBiggerHitbox)
+createButton(content, "Hitbox Size: 10", function() Settings.HitboxSize = 10 end)
+createButton(content, "Hitbox Size: 20 (Large)", function() Settings.HitboxSize = 20 end)
+createButton(content, "Hitbox Size: 30 (Huge)", function() Settings.HitboxSize = 30 end)
+createButton(content, "🔓 Unlock All Powers", unlockAllPowers)
+
+createSection(content, "🏃 MOVEMENT")
+createToggle(content, "Speed Hack", toggleSpeedHack)
+createButton(content, "Speed: 50", function() setWalkSpeed(50) end)
+createButton(content, "Speed: 100", function() setWalkSpeed(100) end)
+createButton(content, "Speed: 200", function() setWalkSpeed(200) end)
+createToggle(content, "Auto Dash", toggleAutoDash)
+createToggle(content, "Infinite Jump", toggleInfiniteJump)
+
+createSection(content, "👁️ VISUAL & MONITORING")
+createToggle(content, "Player ESP (Name, Health, Distance)", toggleESP)
+createToggle(content, "Live Monitoring Display", toggleMonitoring)
+
+print("━━━━━")
